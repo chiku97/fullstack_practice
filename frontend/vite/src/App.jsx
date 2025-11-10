@@ -20,7 +20,7 @@ export default function App() {
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("http://localhost:3001/signup", form);
+      const { data } = await axios.post("http://localhost:3001/api/signup", form);
       localStorage.setItem("token", data.token);
       setView("users");
     } catch (err) {
@@ -32,7 +32,7 @@ export default function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("http://localhost:3001/login", {
+      const { data } = await axios.post("http://localhost:3001/api/login", {
         email: form.email,
         password: form.password,
       });
@@ -46,7 +46,7 @@ export default function App() {
   // Fetch users (protected)
   const fetchUsers = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3001/users");
+      const { data } = await axios.get("http://localhost:3001/api/users");
       setUsers(data);
     } catch (err) {
       alert("Unauthorized! Please login again.");
