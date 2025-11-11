@@ -19,25 +19,53 @@ export default function App() {
   // Signup
   const handleSignup = async (e) => {
     e.preventDefault();
-    
+    try {
+      const { data } = await axios.post("http://localhost:3001/api/signup", form);
+      localStorage.setItem("token", data.token);
+      setView("users");
+    } catch (err) {
+      alert(err.response?.data?.message || "Signup failed");
+    }
   };
 
   // Login
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+    try {
+      const { data } = await axios.post("http://localhost:3001/api/login", {
+        email: form.email,
+        password: form.password,
+      });
+      localStorage.setItem("token", data.token);
+      setView("users");
+    } catch (err) {
+      alert(err.response?.data?.message || "Login failed");
+    }
   };
 
   // Fetch users (protected)
   const fetchUsers = async () => {
-    
+    try {
+      const { data } = await axios.get("http://localhost:3001/api/users");
+      setUsers(data);
+    } catch (err) {
+      alert("Unauthorized! Please login again.");
+      localStorage.removeItem("token");
+      setView("login");
+    }
   };
 
   // Logout
   const handleLogout = () => {
-    
+    localStorage.removeItem("token");
+    setForm({ name: "", email: "", password: "" });
+    setUsers([]);
+    setView("login");
   };
 
+  useEffect(() => {
+    if (view === "users") fetchUsers();
+  }, [view]);
 
   return (
     <div className="container">
@@ -109,7 +137,7 @@ export default function App() {
           </button>
           <ul>
             {users.map((u) => (
-              <li key={u._id}>
+              <li key={u.id}>
                 {u.name} — {u.email}
               </li>
             ))}
