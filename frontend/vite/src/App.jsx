@@ -6,6 +6,7 @@ export default function App() {
   const [view, setView] = useState("login"); // login | signup | users
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [users, setUsers] = useState([]);
+  const [protectedData, setProtectedData] = useState(null);
 
   // If token exists, auto-switch to users view
   useEffect(() => {
@@ -19,29 +20,67 @@ export default function App() {
   // Signup
   const handleSignup = async (e) => {
     e.preventDefault();
-    
+    try {
+      const response = await axios.post("http://localhost:3001/signup", form);
+      alert(response.data.message);
+      setView("login");
+    } catch (error) {
+      alert(error.response.data.message);
+    }
   };
 
   // Login
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+    try {
+      const response = await axios.post("http://localhost:3001/login", form);
+      localStorage.setItem("token", response.data.token);
+      setView("users");
+      fetchUsers();
+    } catch (error) {
+      alert(error.response.data.message);
+    }
   };
 
   // Fetch users (protected)
   const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:3001/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(response.data.data);
+    } catch (error) {
+      alert("Failed to fetch users");
+    }
     
   };
 
   // Logout
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    setView("login");
+    setUsers([]);
     
+  };
+
+  const handleProtected = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:3001/protected", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      alert(response.data.message);
+    } catch (error) {
+      alert("Failed to access protected route");
+    }
   };
 
 
   return (
     <div className="container">
       <h1>Auth App</h1>
+      <button onClick={handleProtected}>Access Protected Route</button>
 
       {view === "signup" && (
         <form onSubmit={handleSignup}>
