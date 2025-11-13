@@ -3,11 +3,13 @@ const { PrismaClient } = require("./generated/prisma");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const prisma = new PrismaClient();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors());
  
 const JWT_SECRET = 'oksaumya'
@@ -54,7 +56,10 @@ app.post("/users/login", async (req, res) => {
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
       expiresIn: "1h",
     });
-
+    const refreshToken=jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: "20h",
+    });
+    res.cookie("refreshToken", refreshToken, { httpOnly: true, maxAge: 20 * 60 * 60 * 1000 });
     res.status(200).json({ message: "Login successful", token });
   } catch (error) {
     console.error("Login error:", error);
@@ -65,13 +70,30 @@ app.post("/users/login", async (req, res) => {
 
 function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader)
+  const refreshToken = req.cookies.refreshToken;
+  if (!authHeader && !refreshToken)
     return res.status(403).json({ error: "No token provided" });
 
   const token = authHeader.split(" ")[1];
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ error: "Invalid token" });
-    req.user = decoded;
+    if (err){
+      if (refreshToken) {
+        jwt.verify(refreshToken, JWT_SECRET, (err, decoded) => {
+          if (err) {
+            return res.status(403).json({ error: "Invalid refresh token" });
+          } else {
+            const newToken = jwt.sign({ id: decoded.id, email: decoded.email }, JWT_SECRET, {
+              expiresIn: "1h",
+            });
+            res.setHeader("x-access-token", newToken);
+            req.user = decoded;
+            next();
+          }
+        });
+      } else {
+        return res.status(403).json({ error: "Invalid token" });
+      }
+    }
     next();
   });
 }
